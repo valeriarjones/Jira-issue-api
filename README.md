@@ -1,4 +1,4 @@
-###MLE assessment - Xccelerated
+### MLE assessment - Xccelerated
 #### Jira issue resolution prediction and release planning assistance 
 A REST-ish API that takes a Jira issue key and returns the prediction 
 date for the issue to reach the status Resolved.
