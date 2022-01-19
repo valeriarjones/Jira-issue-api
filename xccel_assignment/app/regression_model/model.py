@@ -250,8 +250,7 @@ def run():
         print("Predicting on issues not used to train-test...")
 
     # Transform
-    df_proces_test, scaler = feature_engineering(df_t, cat_col, num_col, predict=True,
-                                                        minmax_scaler=scaler)
+    df_proces_test, scaler = feature_engineering(df_t, cat_col, num_col, predict=True, scaler=scaler)
     # Predict
     target_pred = dec_tree.predict(df_proces_test[sel_features])
 

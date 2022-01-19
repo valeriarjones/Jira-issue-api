@@ -130,3 +130,4 @@ dmypy.json
 
 /rest-service-node/node_modules/
 /rest-service-node/node_modules/qs/.eslintignore
+/xccel_assignment/app/issues_preds.db
