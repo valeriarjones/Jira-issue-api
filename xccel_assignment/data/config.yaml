@@ -1,18 +1,18 @@
 issues: {
          name: "avro-issues.csv",
-         path: "../xccel_assignment/data/",
+         path: "data/",
          delim: ","
 }
 
 day_counts: {
               name: "avro-daycounts.csv",
-              path: "../xccel_assignment/data/",
+              path: "data/",
               delim: ","
 }
 
 transitions: {
                name: "avro-transitions.csv",
-               path: "../xccel_assignment/data/",
+               path: "data/",
                delim: ","
 }
 

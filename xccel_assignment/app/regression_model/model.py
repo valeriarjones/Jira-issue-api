@@ -8,12 +8,14 @@ import yaml
 def preprocess_data(df_day_counts: pd.DataFrame,
                     df_transitions: pd.DataFrame) -> tuple[pd.DataFrame, list, list]:
     """
-    Function to process the data. It transforms date columns to datetime format and replaces nan values where possible.
+    Function to process the data. It transforms date columns to datetime format and replaces nan values
+    where possible.
 
     Args:
         df_day_counts: dataframe containing the daily counts for number of issues in all the possible states
                        ("In Progress", "Open", "Patch Available", "Reopened", "Resolved").
         df_transactions: dataframe containing JIRA-issues transitions and relative information.
+
     returns:
         processed dataframe
     """
@@ -58,8 +60,17 @@ def preprocess_data(df_day_counts: pd.DataFrame,
 
     return df_transitions, cat_col, num_col
 
-def split_data(df_transitions: pd.DataFrame) -> pd.DataFrame:
+
+def split_data(df_transitions: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
     """
+    Function to select only the issues that have been resolved and their history to the resolved state.
+
+    Args:
+        df_transitions: dataframe with the transition statuses of all issues.
+
+    returns:
+        df_select: dataframe with selected entries.
+        keys: issue keys of issues that have been resolved at least once.
     """
     # Select only issues that have transitioned to resolved at least once
     keys = df_transitions.loc[df_transitions["transition"].str.contains("Resolved"),"key"].unique()
@@ -74,12 +85,15 @@ def split_data(df_transitions: pd.DataFrame) -> pd.DataFrame:
 
     return df_select, keys
 
+
 def define_target(df: pd.DataFrame) -> pd.Series:
     """
     Function to get target column from data. The target column will timedelta between date issue was resolved
     and when the issue changed to to_status, transformed to fraction of a day.
+
     Args:
         df: transitions dataframe containing only transitions up to issue goes to_status resolved.
+
     returns:
         target column
     """
@@ -94,8 +108,20 @@ def define_target(df: pd.DataFrame) -> pd.Series:
 def feature_engineering(df: pd.DataFrame,
                         cat_col: list,
                         num_col: list,
-                        predict: bool=False, minmax_scaler: object=None) -> pd.DataFrame:
+                        predict: bool=False, scaler: object=None) -> tuple[pd.DataFrame, object]:
     """
+    Function to perform feature engineering. Numerical columns will be scaled and Categorical columns will be ohe.
+
+    Args:
+        df: dataframe of preprocessed data
+        cat_col: list of categorical column names
+        num_col: list of numerical column names
+        predict: boolean to indicate if it's final prediction, i.e. if to fit the scaler or not
+        scaler: scaler object in case it's final prediction.
+
+    return:
+        df_scaled: dataframe of ohe and scaled features.
+        scaler: fitted scaler object.
     """
     # ohe categorical columns
     df_ohe = pd.get_dummies(df[cat_col])
@@ -105,19 +131,19 @@ def feature_engineering(df: pd.DataFrame,
 
     # If feature engineering for train-test and not final predict, fit minmax scaler
     if not predict:
-        minmax_scaler = preprocessing.MinMaxScaler()
-        minmax_scaler = minmax_scaler.fit(num_values)
+        scaler = preprocessing.MinMaxScaler()
+        scaler = scaler.fit(num_values)
 
     # Scale numerical values
-    num_values_scaled = minmax_scaler.transform(num_values)
+    num_values_scaled = scaler.transform(num_values)
     df_scaled = pd.DataFrame(num_values_scaled)
-    df_scaled.columns=num_col
+    df_scaled.columns = num_col
     df_scaled.set_index(df.index, inplace=True)
 
     # Concatenate with ohe data
     df_scaled = pd.concat([df_ohe, df_scaled], axis=1)
 
-    return df_scaled, minmax_scaler
+    return df_scaled, scaler
 
 def select_features(df: pd.DataFrame,
                     target: pd.Series,
@@ -126,7 +152,20 @@ def select_features(df: pd.DataFrame,
                     min_feat: int=7,
                     cv: int=5) -> list:
     """
+    Function to perform recursive feature selection with cross validation.
+
+    Args:
+        df: dataframe containing all the fetaures.
+        target: target column.
+        dec_tree: decision tree regressor model.
+        step: the step for RFECV.
+        min_feat: minimum number of features to select.
+        cv: number of cross validations.
+
+    returns:
+        sel_features: list of selected features.
     """
+
     # Select best features with recursive feature elimination
     rfe = feature_selection.RFECV(dec_tree, step=step, min_features_to_select=min_feat, cv=cv)
     rfe = rfe.fit(df, target)
@@ -178,6 +217,7 @@ def run():
 
     if verbose:
         print("Performing feature selection...")
+
     # Perform feature selection (in this case RFECV)
     sel_features = select_features(df_train, target_train, dec_tree)
 
@@ -208,6 +248,7 @@ def run():
 
     if verbose:
         print("Predicting on issues not used to train-test...")
+
     # Transform
     df_proces_test, scaler = feature_engineering(df_t, cat_col, num_col, predict=True,
                                                         minmax_scaler=scaler)
